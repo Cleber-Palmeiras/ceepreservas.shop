@@ -1,92 +1,144 @@
 <?php
-  if (!isset($_SESSION)) {
-    session_start();
-   }
-  if (empty($_SESSION['usuario_id'])) { header("Location: index.php"); exit; }
+/**
+ * CEEP Reservas - Minhas Reservas (2026)
+ */
 
-if($_SESSION["cpf"]==""){
-  echo("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){ alert('Você ainda não está logado!.'); window.navigate('index.php'); } </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>");
-  exit();
+require_once __DIR__ . '/core/bootstrap.php';
+auth_require(['a', 'p']);
+
+$user = auth_user();
+$matricula = $user['matricula'];
+$isAdmin = auth_is_admin();
+
+// Filtro de período (Futuras ou Todas)
+$filtro = $_GET['filtro'] ?? 'futuras';
+$agora = date('Y-m-d H:i:s');
+
+try {
+    if ($filtro === 'historico') {
+        $minhas = DB::fetchAll(
+            "SELECT r.*, rec.nome_recurso, rec.categoria 
+             FROM reservas r
+             LEFT JOIN recursos rec ON r.cod_recurso = rec.cod_recurso
+             WHERE r.matricula = ?
+             ORDER BY r.datatempo DESC LIMIT 100",
+            [$matricula]
+        );
+    } else {
+        $minhas = DB::fetchAll(
+            "SELECT r.*, rec.nome_recurso, rec.categoria 
+             FROM reservas r
+             LEFT JOIN recursos rec ON r.cod_recurso = rec.cod_recurso
+             WHERE r.matricula = ? AND r.datatempo >= ?
+             ORDER BY r.datatempo ASC",
+            [$matricula, $agora]
+        );
+    }
+} catch (Throwable $t) {
+    error_log('Erro em minhas reservas: ' . $t->getMessage());
+    $minhas = [];
 }
 
-if($_SESSION["tipo"]!="p"){
-  if ($_SESSION["tipo"]!="a"){
-  echo("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){ alert('Você não tem permissão para acessar essa página!.'); window.navigate('index.php'); } </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>");
-  exit();
-  }
-}
-
+render_header('Minhas Reservas', 'minhas_reservas');
 ?>
 
-<!doctype html>
-<html lang=''>
-<head>
-   <meta charset='utf-8'>
-   <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="css/normalize.css">
-    <link rel="stylesheet" href="css/stilo.css"> 
-   <script src="http://code.jquery.com/jquery-latest.min.js" type="text/javascript"></script>
-   <title>Minhas reservas</title>
-</head>
-<body>
-<section>
-<?php if ($_SESSION["tipo"]=="p"){
-
-?>
-<body class="h2" style="background-color:#DCDCDC">
-       <img src="css/logook.jpg" alt="Imagem Logo" width="100%" height="10%" > 
-</body>
-<?php } else {
-  ?>
-
-<body class="h2" style="background-image:#DCDCDC">
-       <img src="css/logook1.jpg" alt="Imagem Logo" width="100%" height="10%" > 
-</body>
-<?php } 
-?>
-</section>
-<divclass="h2" id='cssmenu'>
-<ul>
-   <li class='has-sub'><a href='home.php'>Inicio</a></li>
-   <?php if ($_SESSION["tipo"]=="a"){ ?>
-   <li class='has-sub' ><a href='#'>Usuarios</a>
-            <ul>
-               <li><a href='formulario_cadastro.php'><span>Adicionar</span></a></li>
-               <li><a href='view-paginated.php'><span>Gerenciar</span></a></li>
-                <li><a href='excluir_reservas.php'><span>Reservas</span></a></li> 
-               
-            </ul>
-         </li>
-   <li class='has-sub'><a href='#'>Recursos</a>
-            <ul>
-               <li><a href='recurso.php'><span>Adicionar</span></a></li>
-               <li><a href='gerencia_recurso.php'><span>Gerenciar</span></a></li>
-            </ul>
-   </li>
-   <?php } ?> 
-   <li class='active has-sub'><a href='#'>Reservas</a>
-            <ul>
-               <li><a href='user1.php'><span>Reservar</span></a>
-                     
-                </li>
-               <li><a href='apagar.php'><span>Cancelar</span></a></li>
-               <li><a href='reservas.php'><span>Minhas reservas</span></a></li>
-               
-            </ul>
-   </li>
-   <li class='has-sub'><a href='#'>Meu Perfil</a>
-            <ul>
-               <li><a href='editar_usuario.php'><span>Dados pessoais</span></a></li>
-               <li><a href='modificar_senha.php'><span>Alterar senha</span></a></li>
-            </ul>
-   </li>
-   <li class='has-sub'><a href='logout.php'>Sair</a></li>
-</ul>
+<div class="page-header animate-slide-in">
+    <div>
+        <h1 class="page-title">Minhas Reservas</h1>
+        <p class="page-subtitle">Acompanhe seus horários agendados e gerencie seus recursos pedagógicos.</p>
+    </div>
+    <div class="page-actions">
+        <a href="user1.php" class="btn btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>Nova Reserva</span>
+        </a>
+    </div>
 </div>
-<body class="blurBg-false" style="background-color:#EBEBEB">
-  <div class="main" >
-    <?php include('minhas_reservas.php'); ?>
-  </div>    
-</body>
-</body>
-<html>
+
+<div class="card animate-slide-in">
+    <div class="card-header">
+        <h2 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            <span>Listagem de Agendamentos</span>
+        </h2>
+        <div style="display: flex; gap: 0.5rem;">
+            <a href="reservas.php?filtro=futuras" class="btn <?= $filtro === 'futuras' ? 'btn-primary' : 'btn-secondary' ?> btn-sm">Próximas Reservas</a>
+            <a href="reservas.php?filtro=historico" class="btn <?= $filtro === 'historico' ? 'btn-primary' : 'btn-secondary' ?> btn-sm">Histórico Completo</a>
+        </div>
+    </div>
+
+    <?php if (empty($minhas)): ?>
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+            </div>
+            <h3 class="empty-state-title">Nenhuma reserva encontrada</h3>
+            <p class="empty-state-desc">Você ainda não possui horários agendados para este período.</p>
+            <a href="user1.php" class="btn btn-primary">Fazer um Agendamento</a>
+        </div>
+    <?php else: ?>
+        <div class="table-responsive">
+            <table class="ceep-table">
+                <thead>
+                    <tr>
+                        <th>Data</th>
+                        <th>Horário</th>
+                        <th>Recurso / Sala</th>
+                        <th>Turno</th>
+                        <th>Status</th>
+                        <th style="text-align: right;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php 
+                    $turnoNomes = ['m' => 'Manhã', 't' => 'Tarde', 'n' => 'Noite'];
+                    foreach ($minhas as $res): 
+                        $passada = strtotime($res['datatempo']) < time();
+                    ?>
+                    <tr>
+                        <td>
+                            <strong><?= date('d/m/Y', strtotime($res['datatempo'])) ?></strong>
+                        </td>
+                        <td>
+                            <span class="badge badge-secondary" style="font-size: 0.85rem;">
+                                <?= date('H:i', strtotime($res['datatempo'])) ?>
+                            </span>
+                        </td>
+                        <td>
+                            <strong><?= e($res['nome_recurso'] ?? 'Recurso #' . $res['cod_recurso']) ?></strong>
+                        </td>
+                        <td>
+                            <span class="badge badge-info">
+                                <?= e($turnoNomes[$res['turno'] ?? ''] ?? 'Padrão') ?>
+                            </span>
+                        </td>
+                        <td>
+                            <?php if ($passada): ?>
+                                <span class="badge badge-secondary">Concluída</span>
+                            <?php else: ?>
+                                <span class="badge badge-success">Confirmada</span>
+                            <?php endif; ?>
+                        </td>
+                        <td style="text-align: right;">
+                            <?php if (!$passada || $isAdmin): ?>
+                                <a 
+                                    href="cancela.php?id=<?= urlencode($res['ID']) ?>&csrf_token=<?= e(csrf_token()) ?>" 
+                                    class="btn btn-danger btn-sm"
+                                    data-confirm="Tem certeza que deseja cancelar esta reserva para <?= date('d/m/Y \à\s H:i', strtotime($res['datatempo'])) ?>?"
+                                >
+                                    Cancelar
+                                </a>
+                            <?php else: ?>
+                                <span style="font-size: 0.8rem; color: var(--slate-400);">Finalizada</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    <?php endif; ?>
+</div>
+
+<?php
+render_footer();

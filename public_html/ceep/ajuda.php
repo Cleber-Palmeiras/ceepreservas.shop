@@ -1,35 +1,73 @@
-<?php 
-	if (!isset($_SESSION)) {
-    session_start();
-   }
-	if (empty($_SESSION['usuario_id'])) { header("Location: index.php"); exit; }
-?>
-<html>
-	<head>
-		<title>Ajuda</title>
-		<meta charset='utf-8' >
-	</head>
-	
-	<body bgcolor = "yellow">
-		<h1>Opções pesquisa</h1>
-		<ul>
-			<li> <a href = "#logica"> Adicionar reserva </a> </li>
-			<li> <a href = "#web"> Desenvolvimento Web </a> </li>
-			<li> <a href = "#sql"> SQL e Modelo Relacional </a> </li>
-		</ul>
-		
-		<h3 id="logica"> Adicionar reserva </h3>
-		Caro usuário, para adicionar uma reserva, você deve simplesmente selecionar o recurso desejado, selecionar a hora e posteriormente clicar em reservar. 
-		Você pode reservar apenas de no máximo uma semana para a outra. Você possui o limite de apenas três reservas semanais. 
-		Os datashows 1 e 2 nas sextas-feiras e aos sábado são reservados para EAD.
-		<center><img src="ajuda/reserva.png" height="50%" alt="Imagem Logo" ></center>  
+<?php
+/**
+ * CEEP Reservas - Central de Ajuda & Orientações de Uso
+ */
 
-		<h3 id="web"> Desenvolvimento Web </h3>
-		Desenvolvimento web é o termo utilizado para descrever o desenvolvimento de sites, na Internet ou numa intranet. Este é o profissional que trabalha desenvolvendo websites, podendo ser um Web Designer (Desenvolvedor do Layout), ou Web Developer(Desenvolvedor de sistemas). O desenvolvimento refere-se a um processo de construção e testes do software especifico para a web, com a finalidade de se obter uma conjunto de programas, que satisfazem as funções pretendidas, quer em termos de usabilidade dos usuários ou compatibilidade com outros programas existentes. O desenvolvimento web pode variar desde simples páginas estáticas a aplicações ricas, comércios eletrônicos ou redes sociais. O desenvolvimento web leva em consideração fatores como a verificação de erros na entrada de dados através formulários, assim como a filtragem e a normalização dos dados que são alimentados por esses meios. Falhas na segurança como o SQL injection devem ser testadas, e o uso de scripts pode ajudar a encontrar outras falhas de segurança mais técnicas. As peculiaridades de cada sistema dependem das tecnologias usadas, e muitas vezes não é função do desenvolvedor manter o nível de segurança, mas sim da plataforma, por exemplo o Apache server, ou o php.
-		<center> <img src="ajuda/cancelar.png" height="50%" alt="Imagem Logo" > </center> 		
-		<h3 id="sql"> SQL e Modelo Relacional </h3>
-		O modelo relacional é um modelo de dados, adequado a ser o modelo subjacente de um Sistema Gerenciador de Banco de Dados (SGBD), que se baseia no princípio em que todos os dados estão guardados em tabelas (ou, matematicamente falando, relações). Toda sua definição é teórica e baseada na lógica de predicados e na teoria dos conjuntos. O conceito foi criado por Edgar Frank Codd em 1970, sendo descrito no artigo "Relational Model of Data for Large Shared Data Banks". Na verdade, o modelo relacional foi o primeiro modelo de dados descrito teoricamente, os bancos de dados já existentes passaram então a ser conhecidos como (modelo hierárquico, modelo em rede ou Codasyl e modelo de listas invertidas). O modelo relacional para gerência de bases de dados (SGBD) é um modelo de dados baseado em lógica e na teoria de conjuntos. Em definição simplificada, o modelo baseia-se em dois conceitos: conceito de entidade e relação - Uma entidade é um elemento caracterizado pelos dados que são recolhidos na sua identificação vulgarmente designado por tabela. Na construção da tabela identificam-se os dados da entidade. A atribuição de valores a uma entidade constrói um registro da tabela. A relação determina o modo como cada registro de cada tabela se associa a registros de outras tabelas. Historicamente ele é o sucessor do modelo hierárquico e do modelo em rede. Estas arquiteturas antigas são até hoje utilizadas em alguns data centers com alto volume de dados, onde a migração é inviabilizada pelo custo que ela demandaria; existem ainda os novos modelos baseados em orientação ao objeto, que na maior parte das vezes são encontrados como kits em linguagem formal. O modelo relacional foi inventado pelo Frank Codd e subsequentemente mantido e aprimorado por Chris Date e Hugh Darwen como um modelo geral de dados. No Terceiro Manifesto (1995) eles mostraram como o modelo relacional pode ser estendido com características de orientação a objeto sem comprometer os seus princípios fundamentais. A linguagem padrão para os bancos de dados relacionais, SQL, é apenas vagamente remanescente do modelo matemático. Atualmente ela é adotada, apesar de suas restrições, porque ela é antiga e muito mais popular que qualquer outra linguagem de banco de dados.
-		
-	</body>
-	
-</html>
+require_once __DIR__ . '/core/bootstrap.php';
+auth_require(['a', 'p']);
+
+render_header('Central de Ajuda', 'ajuda');
+?>
+
+<div class="page-header animate-slide-in">
+    <div>
+        <h1 class="page-title">Central de Ajuda &amp; Orientações</h1>
+        <p class="page-subtitle">Instruções para uso responsável e eficiente do sistema de reservas de recursos.</p>
+    </div>
+    <div class="page-actions">
+        <a href="user1.php" class="btn btn-primary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>Fazer Reserva</span>
+        </a>
+    </div>
+</div>
+
+<div class="card animate-slide-in" style="max-width: 800px; margin: 0 auto;">
+    <div class="card-header">
+        <h2 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            <span>Dúvidas Frequentes &amp; Regras de Uso</span>
+        </h2>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 1.5rem; line-height: 1.6;">
+        <div>
+            <h3 style="font-size: 1.05rem; font-family: var(--font-heading); color: var(--slate-900); margin-bottom: 0.35rem;">
+                1. Como efetuar um agendamento de sala ou equipamento?
+            </h3>
+            <p style="color: var(--slate-600); font-size: 0.92rem;">
+                No menu superior, acesse <strong>Reservas &rarr; Nova Reserva</strong>. Selecione a categoria do recurso (Datashow, Laboratório, Sala, etc.), escolha o equipamento desejado e o turno (Manhã, Tarde ou Noite). Em seguida, navegue pela grade semanal e clique em qualquer horário disponível (verde) para confirmar seu agendamento instantaneamente.
+            </p>
+        </div>
+
+        <div style="border-top: 1px solid var(--slate-100); padding-top: 1.25rem;">
+            <h3 style="font-size: 1.05rem; font-family: var(--font-heading); color: var(--slate-900); margin-bottom: 0.35rem;">
+                2. Qual a antecedência permitida para reservas?
+            </h3>
+            <p style="color: var(--slate-600); font-size: 0.92rem;">
+                Os agendamentos são abertos para a semana corrente e semanas subsequentes do calendário letivo, permitindo aos professores planejar suas aulas práticas com antecedência organizada.
+            </p>
+        </div>
+
+        <div style="border-top: 1px solid var(--slate-100); padding-top: 1.25rem;">
+            <h3 style="font-size: 1.05rem; font-family: var(--font-heading); color: var(--slate-900); margin-bottom: 0.35rem;">
+                3. Como cancelar uma reserva que não vou utilizar?
+            </h3>
+            <p style="color: var(--slate-600); font-size: 0.92rem;">
+                Acesse <strong>Reservas &rarr; Minhas Reservas</strong> ou o próprio painel inicial. Localize o horário agendado e clique no botão vermelho <strong>Cancelar</strong>. Liberar o recurso quando não for utilizá-lo é fundamental para que outros colegas docentes possam agendá-lo.
+            </p>
+        </div>
+
+        <div style="border-top: 1px solid var(--slate-100); padding-top: 1.25rem;">
+            <h3 style="font-size: 1.05rem; font-family: var(--font-heading); color: var(--slate-900); margin-bottom: 0.35rem;">
+                4. Como alterar minha senha ou dados cadastrais?
+            </h3>
+            <p style="color: var(--slate-600); font-size: 0.92rem;">
+                Clique no seu nome/avatar no canto superior direito do cabeçalho e selecione <strong>Meus Dados</strong> para atualizar seu e-mail ou <strong>Alterar Senha</strong> para atualizar sua credencial de segurança.
+            </p>
+        </div>
+    </div>
+</div>
+
+<?php
+render_footer();

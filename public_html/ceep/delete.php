@@ -1,54 +1,35 @@
-<meta charset='utf-8'>
-<?php 
-  if (!isset($_SESSION)) {
-    session_start();
-   }
-  if (empty($_SESSION['usuario_id'])) { header("Location: index.php"); exit; }
-
-?>
-
-<script src="sweetalert-dev.min.js"/> </script>
-<script src="stylesheet" href="sweetalert.css" /> </script>
-<link rel="stylesheet" href="sweetalert.min.css" type="text/css" />
-
 <?php
+/**
+ * CEEP Reservas - Exclusão Segura de Usuário
+ */
 
- $id = isset($_GET['id']);
+require_once __DIR__ . '/core/bootstrap.php';
+auth_require(['a']); // Exclusivo Administrador
 
- if (isset($_GET['id']) && is_numeric($_GET['id']))
- {
- $id = $_GET['id'];
- 
-    ?> 
-    <BODY > 
-    <?php
-    
-    echo ("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){  
-                        swal({   title: '',   
-                        text: 'Deseja realmente excluir este usuário?',   
-                        type: 'warning',   
-                        showCancelButton: true,   
-                        confirmButtonColor: '#DD6B55',   
-                        confirmButtonText: 'Sim',
-                        cancelButtonText: 'Não',   
-                        closeOnConfirm: false 
-                        }, 
+$id = (int)($_REQUEST['id'] ?? 0);
 
-                        function(isConfirm){   
-                            if (isConfirm) {     
-                               top.location.href = 'deletar.php?id=$id' 
-                            } 
-                            else {     
-                                top.location.href = 'view-paginated.php'  
-                            } 
-                        }
-
-                        );} </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>");
-                        
+if ($id <= 0 || $id === (int)$_SESSION['usuario_id']) {
+    set_flash('error', 'Operação inválida. Não é permitido excluir a própria conta logada.', 'Erro');
+    header('Location: view-paginated.php');
+    exit();
 }
- else
- {
- 	echo "Não foi-se";
- }
- 
-?>
+
+try {
+    $u = DB::fetchOne("SELECT matricula, nome, sobrenome FROM usuarios WHERE usuario_id = ?", [$id]);
+    if ($u) {
+        // Remove reservas do usuário
+        DB::execute("DELETE FROM reservas WHERE matricula = ?", [$u['matricula']]);
+        // Remove usuário
+        DB::execute("DELETE FROM usuarios WHERE usuario_id = ?", [$id]);
+
+        set_flash('success', "Usuário '{$u['nome']} {$u['sobrenome']}' e suas reservas foram removidos com sucesso.", 'Usuário Excluído');
+    } else {
+        set_flash('error', 'Usuário não encontrado.', 'Erro');
+    }
+} catch (Throwable $t) {
+    error_log('Erro ao excluir usuário: ' . $t->getMessage());
+    set_flash('error', 'Erro no servidor ao tentar excluir o usuário.', 'Erro');
+}
+
+header('Location: view-paginated.php');
+exit();

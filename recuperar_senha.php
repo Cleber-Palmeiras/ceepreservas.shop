@@ -1,192 +1,91 @@
-<html >
-<script src="sweetalert-dev.min.js"/> </script>
-<script src="stylesheet" href="sweetalert.css" /> </script>
-<link rel="stylesheet" href="sweetalert.min.css" type="text/css" />
- <meta charset="utf-8" />
 <?php
+/**
+ * CEEP Reservas - Recuperação de Senha
+ */
 
+require_once __DIR__ . '/core/bootstrap.php';
 
-require_once('conecta.php');
+$mensagem = null;
+$tipoMensagem = null;
 
-class recuperar_senha {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $identificador = trim($_POST['identificador'] ?? '');
 
-	private $email;
-	private $senha;
-    private $senha1;
+    if (!empty($identificador)) {
+        $u = DB::fetchOne(
+            "SELECT * FROM usuarios WHERE email = ? OR matricula = ? OR cpf = ?",
+            [$identificador, $identificador, $identificador]
+        );
 
-
-function Conecta(){
-	$link= DB_Connect();
-    return $link;
-}
-
-function email ($email){
-    $this->email = $email;   
-}
-
-
-function VerificarEmail (){
-    $existe = 0; 
-    $link = $this->Conecta();
-    mysqli_select_db($link, 'tcc');
-    
-
-     $this->email = mysqli_real_escape_string($link,($this->email));
-     
-                $cont=0;
-                // Verificar se o email já existe no Banco de Dados
-
-                $sql = mysqli_query($link, "SELECT * FROM usuarios WHERE email = '{$this->email}' ") or print mysql_error();
-
-                if(mysqli_num_rows($sql)>0) {
-                    $cont++;
-                }
-                else { 
-                    echo ("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){  
-                        swal({
-                                title:'',
-                                text:'Este email não está cadastrado no nosso site!',
-                                type:'error'
-                                },
-                                function(){
-                                  top.location.href = 'formulario_senha_perdida.html'
-                                }
-                              ); } </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>"); 
-                                include "formulario_senha_perdida.html";
-                }
-
-                return $cont;
-               
-}
-
-function makeRandomPassword() {
-
-            $salt = "abchefghjkmnpqrstuvwxyz0123456789";
-            srand((double) microtime() * 1000000);
-            $i = 0;
-            $pass='';
-            while ($i <= 7) {
-
-                $num = rand() % 33;
-                $tmp = substr($salt, $num, 1);
-                $pass = $pass . $tmp;
-                $i++;
-            }
-
-            return $pass;
+        if ($u) {
+            // Em ambiente escolar local, orienta o usuário ou envia e-mail conforme configurado
+            $mensagem = "Localizamos sua conta ({$u['nome']}). Por favor, entre em contato com a coordenação pedagógica ou administrador para a reinicialização temporária da sua senha.";
+            $tipoMensagem = 'info';
+        } else {
+            $mensagem = "Nenhuma conta foi localizada com os dados informados.";
+            $tipoMensagem = 'error';
         }
-
-function Reg (){
-
-        $link = $this->Conecta();
-
-        /* Se passarmos por esta verificação ilesos é hora de
-          finalmente cadastrar os dados. Vamos utilizar uma função para gerar a senha de
-          forma randômica */
-
-        $senhaok = $this->makeRandomPassword();
-        $senha_randomica = $senhaok;
-        $this->senha1 = $senha_randomica;
-        
-
-        // VEJA QUE PRIMEIRO EU VOU GERAR UM SALT JÁ ENCRIPTADO EM MD5
-
-        //PRIMEIRA ENCRIPTAÇÃO ENCRIPTANDO COM crypt
-        //$codifica = crypt($this->senha,$senha_randomica);
-     
-        // SEGUNDA ENCRIPTAÇÃO COM sha512 (128 bits)
-        $codifica = hash('sha512',$this->senha1);
-     
-        //AGORA RETORNO O VALOR FINAL ENCRIPTADO
-        
-
-        $this->senha = $codifica;
-		// Inserindo os dados no banco de dados
-
-		mysqli_select_db($link, 'tcc');
-
-         $sql = "UPDATE usuarios SET senha='$this->senha' WHERE email='$this->email'";
-
-				if (!$link->query($sql)) {
-                        echo ("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){  
-                        swal({
-                                title:'',
-                                text:'Ops... Ocorreu um erro, tente novamente!',
-                                type:'error'
-                                },
-                                function(){
-                                  top.location.href = 'formulario_senha_perdida.html'
-                                }
-                              ); } </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>"); 
-                                include "formulario_senha_perdida.html";
-                        exit();
-                    }
-
-        if (!$sql) {
-            echo ("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){  
-                        swal({
-                                title:'',
-                                text:'Ops... Ocorreu um erro, tente novamente!',
-                                type:'error'
-                                },
-                                function(){
-                                  top.location.href = 'formulario_senha_perdida.html'
-                                }
-                              ); } </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>"); 
-                                include "formulario_senha_perdida.html";
-        }
-        else {
-
-            $usuario_id = mysqli_insert_id($link);
-// Enviar um email ao usuário para confirmação e ativar o cadastro!
-
-            $headers = "MIME-Version: 1.0\n";
-            $headers .= "Content-type: text/html; charset=iso-8859-1\n";
-            $headers .= "From: CEEP ANGELINA MENDES BRAGA <ceepreservas.site >";
-            $subject = "Reenvio de senha";
-            $mensagem = "
-
-				<strong>Esta é sua nova Senha</strong>: {$this->senha1}<br /> <br />";
-
-                $this->EnviarEmail($this->email,$subject,$mensagem,$headers);
-            }
-
+    } else {
+        $mensagem = "Por favor, informe seu e-mail, matrícula ou CPF.";
+        $tipoMensagem = 'warning';
     }
-
-    function EnviarEmail ($email,$subject,$mensagem,$headers){
-
-        ini_set('display_errors', 1);
-
-        error_reporting(E_ALL);
-
-        $from = "";
-
-        $to = $email;
-
-        $subject = $subject;
-
-        $mensagem = $mensagem;
-
-        $headers = $headers;
-
-        mail($to, $subject, $mensagem, $headers);
-
-        echo ("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){  
-                        swal({
-                                title:'',
-                                text:'A sua nova senha foi enviada ao seu email!',
-                                type:'success'
-                                },
-                                function(){
-                                  top.location.href = 'index.php'
-                                }
-                              ); } </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>"); 
-                                include "index.php";
-        
-        }   
-
 }
-
-
 ?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar Senha — CEEP Reservas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="core/app.css?v=2026.1">
+</head>
+<body class="login-body">
+    <div class="login-card animate-slide-in">
+        <div class="login-brand">
+            <div class="login-icon-box">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <h1 class="login-title">Recuperar <span style="color: var(--primary);">Senha</span></h1>
+            <p class="login-subtitle">Identifique sua conta para orientações de acesso</p>
+        </div>
 
+        <?php if ($mensagem): ?>
+            <div class="ceep-alert alert-<?= e($tipoMensagem) ?> animate-slide-in">
+                <div class="alert-content"><?= e($mensagem) ?></div>
+            </div>
+        <?php endif; ?>
+
+        <form method="POST" action="recuperar_senha.php">
+            <?= csrf_field() ?>
+
+            <div class="form-group">
+                <label for="identificador" class="form-label">E-mail, Matrícula ou CPF</label>
+                <input 
+                    type="text" 
+                    id="identificador" 
+                    name="identificador" 
+                    class="form-control" 
+                    placeholder="Digite seu e-mail ou número de matrícula" 
+                    required 
+                    autofocus
+                >
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+                    <span>Localizar Conta</span>
+                </button>
+            </div>
+
+            <div style="margin-top: 1.25rem; text-align: center;">
+                <a href="index.php" style="color: var(--slate-600); text-decoration: none; font-size: 0.88rem; font-weight: 500;">
+                    &larr; Voltar para a Tela de Login
+                </a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

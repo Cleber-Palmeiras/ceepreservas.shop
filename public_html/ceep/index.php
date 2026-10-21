@@ -1,152 +1,121 @@
+<?php
+/**
+ * CEEP Reservas - Tela de Login Modernizada (2026)
+ */
+
+require_once __DIR__ . '/core/bootstrap.php';
+
+// Se ja estiver logado, redireciona para a Home
+if (auth_check()) {
+    header('Location: home.php');
+    exit();
+}
+
+$erro = null;
+if (isset($_SESSION['login']) && $_SESSION['login'] === 'false') {
+    $erro = 'Credenciais incorretas ou usuario nao encontrado. Por favor, tente novamente.';
+    unset($_SESSION['login']);
+}
+
+$flash = get_flash();
+?>
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Login</title>
-
-<!-- Google Font -->
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-
-<style>
-body{
-    margin:0;
-    font-family:'Poppins', sans-serif;
-    height:100vh;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-}
-
-/* Card */
-.login-box{
-    background:#fff;
-    padding:40px;
-    border-radius:15px;
-    width:100%;
-    max-width:380px;
-    box-shadow:0 15px 40px rgba(0,0,0,0.2);
-    text-align:center;
-}
-
-/* Logo */
-.login-box img{
-    width:120px;
-    margin-bottom:20px;
-}
-
-/* Título */
-.login-box h2{
-    margin-bottom:20px;
-    color:#333;
-}
-
-/* Inputs */
-.input-group{
-    margin-bottom:15px;
-}
-
-.input-group input{
-    width:100%;
-    padding:12px;
-    border:1px solid #ddd;
-    border-radius:8px;
-    outline:none;
-    transition:0.3s;
-}
-
-.input-group input:focus{
-    border-color:#667eea;
-    box-shadow:0 0 5px rgba(102,126,234,0.5);
-}
-
-/* Botão */
-button{
-    width:100%;
-    padding:12px;
-    border:none;
-    border-radius:8px;
-    background:#667eea;
-    color:#fff;
-    font-weight:600;
-    cursor:pointer;
-    transition:0.3s;
-}
-
-button:hover{
-    background:#5a67d8;
-}
-
-/* Link */
-.link{
-    margin-top:15px;
-    display:block;
-    font-size:14px;
-}
-
-.link a{
-    text-decoration:none;
-    color:#667eea;
-}
-
-/* Erro */
-.erro{
-    background:#fdecea;
-    color:#b71c1c;
-    padding:8px;
-    border-radius:5px;
-    margin-top:10px;
-    font-size:13px;
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — CEEP Reservas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="core/app.css?v=2026.1">
 </head>
-
-<body>
-
-<div class="login-box">
-
-    <img src="css/logo.jpg" alt="Logo">
-
-    <h2>Bem-vindo</h2>
-
-    <form action="verifica_usuario.php" method="post">
-
-        <div class="input-group">
-            <input type="text" name="matricula" placeholder="CPF (somente números)" required onkeypress='return SomenteNumero(event)'>
+<body class="login-body">
+    <div class="login-card animate-slide-in">
+        <div class="login-brand">
+            <div class="login-icon-box">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                    <path d="m9 16 2 2 4-4"></path>
+                </svg>
+            </div>
+            <h1 class="login-title">CEEP <span style="color: var(--primary);">Reservas</span></h1>
+            <p class="login-subtitle">Sistema de Agendamento de Salas e Recursos</p>
         </div>
 
-        <div class="input-group">
-            <input type="password" name="senha" placeholder="Senha" required>
+        <?php if ($flash): ?>
+            <div class="ceep-alert alert-<?= e($flash['type']) ?> animate-slide-in">
+                <div class="alert-content">
+                    <?php if (!empty($flash['title'])): ?><strong><?= e($flash['title']) ?></strong><br><?php endif; ?>
+                    <?= e($flash['message']) ?>
+                </div>
+            </div>
+        <?php endif; ?>
+
+        <?php if ($erro): ?>
+            <div class="ceep-alert alert-error animate-slide-in">
+                <div class="alert-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                </div>
+                <div class="alert-content"><?= e($erro) ?></div>
+            </div>
+        <?php endif; ?>
+
+        <form action="verifica_usuario.php" method="POST" class="login-form">
+            <?= csrf_field() ?>
+
+            <div class="form-group">
+                <label for="matricula" class="form-label">Matrícula ou CPF</label>
+                <input 
+                    type="text" 
+                    id="matricula" 
+                    name="matricula" 
+                    class="form-control" 
+                    placeholder="Digite sua matrícula ou CPF" 
+                    required 
+                    autocomplete="username"
+                    inputmode="numeric"
+                    autofocus
+                >
+            </div>
+
+            <div class="form-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                    <label for="senha" class="form-label" style="margin-bottom: 0;">Senha</label>
+                    <a href="recuperar_senha.php" style="font-size: 0.8rem; color: var(--primary); text-decoration: none; font-weight: 500;">Esqueceu a senha?</a>
+                </div>
+                <div class="password-input-wrap">
+                    <input 
+                        type="password" 
+                        id="senha" 
+                        name="senha" 
+                        class="form-control" 
+                        placeholder="Sua senha de acesso" 
+                        required 
+                        autocomplete="current-password"
+                    >
+                    <button type="button" class="password-toggle-btn" aria-label="Mostrar ou ocultar senha">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </button>
+                </div>
+            </div>
+
+            <div style="margin-top: 1.75rem;">
+                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+                    <span>Acessar Painel</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </div>
+        </form>
+
+        <div style="margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--border-color); text-align: center;">
+            <span style="font-size: 0.82rem; color: var(--slate-500);">CEEP — Centro Estadual de Educação Profissional</span>
         </div>
-
-        <?php 
-        if (isset($_SESSION["login"]) && $_SESSION["login"] == "false") {
-            echo "<div class='erro'>Dados inválidos</div>";
-        }
-        ?>
-
-        <button type="submit">Entrar</button>
-
-    </form>
-
-    <div class="link">
-        <a href="formulario_senha_perdida.html">Esqueceu a senha?</a>
     </div>
 
-</div>
-
-<script>
-function SomenteNumero(e){
-    var tecla=(window.event)?event.keyCode:e.which;   
-    if((tecla>47 && tecla<58)) return true;
-    else{
-        if (tecla==8 || tecla==0) return true;
-        else return false;
-    }
-}
-</script>
-
+    <script src="core/app.js?v=2026.1"></script>
 </body>
 </html>

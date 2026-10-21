@@ -1,27 +1,18 @@
 <?php
-require_once('conf.inc.php');
+/**
+ * Conexao com o banco de dados - Camada retrocompativel modernizada
+ */
 
-function DB_Connect(){
+require_once __DIR__ . '/core/bootstrap.php';
 
-    $link = mysqli_connect(DB_HOSTNAME, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
-
-    // Verifica conexão
-    if (!$link) {
-        die("Erro na conexão com o banco: " . mysqli_connect_error());
-    }
-
-    // Define charset
-    if (!mysqli_set_charset($link, DB_CHARSET)) {
-        die("Erro ao definir charset: " . mysqli_error($link));
-    }
-
-    return $link;
-}
-
-// Fecha conexão
-function DB_Close($link){
-    if ($link) {
-        mysqli_close($link);
+if (!function_exists('DB_Connect')) {
+    function DB_Connect() {
+        return DB::mysqli();
     }
 }
-?>
+
+if (!function_exists('DB_Close')) {
+    function DB_Close($link = null) {
+        return true;
+    }
+}

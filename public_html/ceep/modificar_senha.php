@@ -1,108 +1,126 @@
-<?php 
-  if (!isset($_SESSION)) {
-    session_start();
-   }
-  if (empty($_SESSION['usuario_id'])) { header("Location: index.php"); exit; }
+<?php
+/**
+ * CEEP Reservas - Modificação Segura de Senha
+ */
 
+require_once __DIR__ . '/core/bootstrap.php';
+auth_require(['a', 'p']);
+
+$user = auth_user();
+$userId = (int)$user['id'];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!csrf_verify()) {
+        set_flash('error', 'Token de segurança inválido.', 'Erro');
+        header('Location: modificar_senha.php');
+        exit();
+    }
+
+    $senhaAtual = $_POST['senha_atual'] ?? '';
+    $novaSenha = $_POST['nova_senha'] ?? '';
+    $confirmaSenha = $_POST['confirma_senha'] ?? '';
+
+    if (empty($senhaAtual) || empty($novaSenha)) {
+        set_flash('error', 'Por favor, preencha todos os campos de senha.', 'Campos Vazios');
+        header('Location: modificar_senha.php');
+        exit();
+    }
+
+    if ($novaSenha !== $confirmaSenha) {
+        set_flash('error', 'A nova senha e a confirmação não conferem.', 'Senhas Divergentes');
+        header('Location: modificar_senha.php');
+        exit();
+    }
+
+    if (strlen($novaSenha) < 6) {
+        set_flash('error', 'A nova senha deve possuir pelo menos 6 caracteres.', 'Senha Fraca');
+        header('Location: modificar_senha.php');
+        exit();
+    }
+
+    try {
+        $u = DB::fetchOne("SELECT senha FROM usuarios WHERE usuario_id = ?", [$userId]);
+        if (!$u || !verify_and_upgrade_password($senhaAtual, $u['senha'], $userId)) {
+            set_flash('error', 'Sua senha atual está incorreta.', 'Autenticação Falhou');
+            header('Location: modificar_senha.php');
+            exit();
+        }
+
+        // Gera novo hash seguro
+        $novoHash = password_hash($novaSenha, PASSWORD_DEFAULT);
+        DB::execute("UPDATE usuarios SET senha = ? WHERE usuario_id = ?", [$novoHash, $userId]);
+
+        set_flash('success', 'Sua senha foi alterada com sucesso!', 'Senha Atualizada');
+        header('Location: home.php');
+        exit();
+    } catch (Throwable $t) {
+        error_log('Erro ao alterar senha: ' . $t->getMessage());
+        set_flash('error', 'Ocorreu um erro no servidor ao salvar a nova senha.', 'Erro no Sistema');
+    }
+}
+
+render_header('Alterar Senha', 'perfil');
 ?>
+
+<div class="page-header animate-slide-in">
+    <div>
+        <h1 class="page-title">Alteração de Senha</h1>
+        <p class="page-subtitle">Proteja sua conta utilizando uma senha forte com letras e números.</p>
+    </div>
+    <div class="page-actions">
+        <a href="editar_usuario.php" class="btn btn-secondary">&larr; Voltar para Meus Dados</a>
+    </div>
+</div>
+
+<div class="card animate-slide-in" style="max-width: 540px; margin: 0 auto;">
+    <div class="card-header">
+        <h2 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <span>Definir Nova Senha</span>
+        </h2>
+    </div>
+
+    <form method="POST" action="modificar_senha.php">
+        <?= csrf_field() ?>
+
+        <div class="form-group">
+            <label for="senha_atual" class="form-label">Senha Atual <span class="required">*</span></label>
+            <div class="password-input-wrap">
+                <input type="password" id="senha_atual" name="senha_atual" class="form-control" required autofocus>
+                <button type="button" class="password-toggle-btn" aria-label="Mostrar ou ocultar senha">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="nova_senha" class="form-label">Nova Senha <span class="required">*</span></label>
+            <div class="password-input-wrap">
+                <input type="password" id="nova_senha" name="nova_senha" class="form-control" required minlength="6" placeholder="Mínimo de 6 caracteres">
+                <button type="button" class="password-toggle-btn" aria-label="Mostrar ou ocultar senha">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="confirma_senha" class="form-label">Confirmar Nova Senha <span class="required">*</span></label>
+            <div class="password-input-wrap">
+                <input type="password" id="confirma_senha" name="confirma_senha" class="form-control" required minlength="6">
+                <button type="button" class="password-toggle-btn" aria-label="Mostrar ou ocultar senha">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+            </div>
+        </div>
+
+        <div style="margin-top: 1.75rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <a href="home.php" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">
+                Salvar Nova Senha
+            </button>
+        </div>
+    </form>
+</div>
 
 <?php
-
-
-if($_SESSION["cpf"]==""){
-  echo("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){ alert('Você ainda não está logado!.'); window.navigate('index.php'); } </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>");
-  exit();
-}
-
-if($_SESSION["tipo"]!="p"){
-  if ($_SESSION["tipo"]!="a"){
-  echo("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){ alert('Você não tem permissão para acessar essa página!.'); window.navigate('index.php'); } </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>");
-  exit();
-  }
-}
-$nome=$_SESSION["nome"];
-?>
-
-<!doctype html>
-<html lang=''>
-<head>
-   <meta charset='utf-8'>
-   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-   <meta name="viewport" content="width=device-width, initial-scale=1">
-   <link rel="stylesheet" href="styles.css">
-   <link rel="stylesheet" href="css/normalize.css">
-   <script src="http://code.jquery.com/jquery-latest.min.js" type="text/javascript"></script>
-   <title>Alterar senha</title>
-</head>
-<body>
-<section>
-<?php if ($_SESSION["tipo"]=="p"){
-
-?>
-<body class="h2" style="background-color:#DCDCDC">
-       <img src="css/logook.jpg" alt="Imagem Logo" width="100%" height="10%" > 
-</body>
-<?php } else {
-  ?>
-
-<body class="h2" style="background-image:#DCDCDC">
-       <img src="css/logook1.jpg" alt="Imagem Logo" width="100%" height="10%" > 
-</body>
-<?php } 
-?>
-</section>
-<divclass="h2" id='cssmenu'>
-<ul>
-   <li class='has-sub'><a href='home.php'>Inicio</a></li>
-   <?php if ($_SESSION["tipo"]=="a"){ ?>
-   <li class='has-sub' ><a href='#'>Usuarios</a>
-            <ul>
-               <li><a href='formulario_cadastro.php'><span>Adicionar</span></a></li>
-               <li><a href='view-paginated.php'><span>Gerenciar</span></a></li>
-                <li><a href='excluir_reservas.php'><span>Reservas</span></a></li> 
-               
-            </ul>
-         </li>
-   <li class='has-sub'><a href='#'>Recursos</a>
-            <ul>
-               <li><a href='recurso.php'><span>Adicionar</span></a></li>
-               <li><a href='gerencia_recurso.php'><span>Gerenciar</span></a></li>
-            </ul>
-   </li>
-   <?php } ?> 
-   <li class='has-sub'><a href='#'>Reservas</a>
-            <ul>
-               <li><a href='user1.php'><span>Reservar</span></a>
-                     
-                </li>
-               <li><a href='apagar.php'><span>Cancelar</span></a></li>
-               <li><a href='reservas.php'><span>Minhas reservas</span></a></li>
-               
-            </ul>
-   </li>
-   <li class='active has-sub'><a href='#'>Meu Perfil</a>
-            <ul>
-               <li><a href='editar_usuario.php'><span>Dados pessoais</span></a></li>
-               <li><a href='modificar_senha.php'><span>Alterar senha</span></a></li>
-            </ul>
-   </li>
-   <li class='has-sub'><a href='logout.php'>Sair</a></li>
-</ul>
-</div>
-</div><body class="blurBg-false" style="background-color:#EBEBEB">
-
-<br>
-
-<!-- Start Formoid form-->
-<link rel="stylesheet" href="cadastrar_files/formoid1/formoid-solid-blue.css" type="text/css" />
-<form class="formoid-solid-blue" method="post" action="senha.php" style="background-color:#FFFFFF;font-size:14px;font-family:'Roboto',Arial,Helvetica,sans-serif;color:black;max-width:480px;min-width:150px" method="post"><div class="title"><h2>Alterar senha</h2></div>
-	<div class="element-password"><label class="title"><b>Senha atual</b><span class="required"></span></label><div class="item-cont"><input class="large" type="password" name="senha" required="required" placeholder="Senha atual"/><span class="icon-place"></span></div></div>
-	<div class="element-password"><label class="title"><b>Nova senha</b><span class="required"></span></label><div class="item-cont"><input class="large" type="password" name="senhanova"  required="required" placeholder="Nova senha"/><span class="icon-place"></span></div></div>
-	<div class="element-password"><label class="title"><b>Nova senha</b><span class="required"></span></label><div class="item-cont"><input class="large" type="password" name="senhanova2" required="required" placeholder="Digite novamente a nova senha"/><span class="icon-place"></span></div></div>
-<div class="submit"><input type="submit" value="Enviar"/></div></form><p class="frmd"><a href="http://formoid.com/v29.php">contact form</a> Formoid.com 2.9</p>
-<!-- Stop Formoid form-->
-
-</body>
-
-</body>
-<html>
+render_footer();

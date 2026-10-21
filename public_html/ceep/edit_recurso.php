@@ -1,240 +1,135 @@
 <?php
-/* 
- EDIT.PHP
- Allows user to edit specific entry in database
-*/
+/**
+ * CEEP Reservas - Editar Recurso (Administrador)
+ */
 
- // creates the edit record form
- // since this form is used multiple times in this file, I have made it a function that is easily reusable
- function renderForm($id, $nome_recurso, $status, $categoria , $error)
+require_once __DIR__ . '/core/bootstrap.php';
+auth_require(['a']);
 
- {
- ?>
+$id = (int)($_REQUEST['id'] ?? 0);
 
-<?php 
-  if (!isset($_SESSION)) {
-    session_start();
-   }
-  if (empty($_SESSION['usuario_id'])) { header("Location: index.php"); exit; }
-
-?>
-
-<?php
-include "functions.php"; // arquivo de funções.
-session_checker(); // chama a função que verifica se a session iniciada da acesso à página. 
-if ($_SESSION['tipo'] == 'a') {
-    
-} else {
-    include_once "home.php";
+if ($id <= 0) {
+    set_flash('error', 'Identificador de recurso inválido.', 'Erro');
+    header('Location: gerencia_recurso.php');
     exit();
 }
+
+$recurso = DB::fetchOne("SELECT * FROM recursos WHERE cod_recurso = ?", [$id]);
+if (!$recurso) {
+    set_flash('error', 'Recurso não encontrado.', 'Erro');
+    header('Location: gerencia_recurso.php');
+    exit();
+}
+
+// Processamento POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!csrf_verify()) {
+        set_flash('error', 'Token de segurança inválido.', 'Erro');
+        header('Location: edit_recurso.php?id=' . $id);
+        exit();
+    }
+
+    $nome = trim($_POST['nome'] ?? '');
+    $status = trim($_POST['status'] ?? 'Disponivel');
+    $categoria = trim($_POST['categoria'] ?? '1');
+
+    if (empty($nome)) {
+        set_flash('error', 'O nome do recurso não pode ficar vazio.', 'Erro');
+        header('Location: edit_recurso.php?id=' . $id);
+        exit();
+    }
+
+    try {
+        // Verifica se outro recurso já tem o mesmo nome
+        $existe = DB::fetchOne(
+            "SELECT cod_recurso FROM recursos WHERE LOWER(nome_recurso) = LOWER(?) AND cod_recurso != ?",
+            [$nome, $id]
+        );
+
+        if ($existe) {
+            set_flash('warning', "Outro recurso já utiliza o nome '{$nome}'.", 'Nome Duplicado');
+            header('Location: edit_recurso.php?id=' . $id);
+            exit();
+        }
+
+        DB::execute(
+            "UPDATE recursos SET nome_recurso = ?, status = ?, categoria = ? WHERE cod_recurso = ?",
+            [$nome, $status, $categoria, $id]
+        );
+
+        set_flash('success', "Recurso '{$nome}' atualizado com sucesso!", 'Recurso Atualizado');
+        header('Location: gerencia_recurso.php');
+        exit();
+    } catch (Throwable $t) {
+        error_log('Erro ao atualizar recurso: ' . $t->getMessage());
+        set_flash('error', 'Erro ao salvar alterações no recurso.', 'Erro no Sistema');
+    }
+}
+
+render_header('Editar Recurso', 'gerencia_recurso');
 ?>
-<!doctype html>
-<html lang=''>
-<head>
-   <meta charset='utf-8'>
-   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-   <meta name="viewport" content="width=device-width, initial-scale=1">
-   <link rel="stylesheet" href="styles.css">
-   <link rel="stylesheet" href="css/normalize.css">
-   <script src="http://code.jquery.com/jquery-latest.min.js" type="text/javascript"></script>
-   <title>Adicionar recurso</title>
-</head>
-<body>
-<section>
-<body class="h2" style="background-color:#DCDCDC">
-       <img src="css/logook1.jpg" alt="Imagem Logo" width="100%" height="18%"> 
-</body>
-</section>
-<divclass="h2" id='cssmenu'>
-<ul>
-   <li class='has-sub'><a href='home.php'>Inicio</a></li>
-   <?php if ($_SESSION["tipo"]=="a"){ ?>
-   <li class='has-sub' ><a href='#'>Usuarios</a>
-            <ul>
-               <li><a href='formulario_cadastro.php'><span>Adicionar</span></a></li>
-               <li><a href='view-paginated.php'><span>Gerenciar</span></a></li>
-                <li><a href='excluir_reservas.php'><span>Reservas</span></a></li> 
-               
-            </ul>
-         </li>
-   <li class='active has-sub'><a href='#'>Recursos</a>
-            <ul>
-               <li><a href='recurso.php'><span>Adicionar</span></a></li>
-               <li><a href='gerencia_recurso.php'><span>Gerenciar</span></a></li>
-            </ul>
-   </li>
-   <?php } ?> 
-   <li class='has-sub'><a href='#'>Reservas</a>
-            <ul>
-               <li><a href='user1.php'><span>Reservar</span></a>
-                     
-                </li>
-               <li><a href='apagar.php'><span>Cancelar</span></a></li>
-               <li><a href='reservas.php'><span>Minhas reservas</span></a></li>
-               
-            </ul>
-   </li>
-   <li class='has-sub'><a href='#'>Meu Perfil</a>
-            <ul>
-               <li><a href='editar_usuario.php'><span>Dados pessoais</span></a></li>
-               <li><a href='modificar_senha.php'><span>Alterar senha</span></a></li>
-            </ul>
-   </li>
-   <li class='has-sub'><a href='logout.php'>Sair</a></li>
-</ul>
-</div>
 
-<br>
-<body class="blurBg-false" style="background-color:#EBEBEB">
-
-<!-- Start Formoid form-->
-<link rel="stylesheet" href="cadastrar_files/formoid1/formoid-solid-blue.css" type="text/css" />
-<form class="formoid-solid-blue" method="post" action="" style="background-color:#FFFFFF;font-size:14px;
-font-family:'Roboto',Arial,Helvetica,sans-serif;color:black;max-width:480px;min-width:150px" method="post">
-<div class="title"><h2>Editar Recursos</h2></div>
-<div class="item-cont" >
-  <span class="icon-place"></span></div>
-  <div class="item-cont" >
-
-    <div class="element-input">
-      <label class="title"><b>Nome</b><span class="required">
-        </span></label>
-              <div class="item-cont">
-                <input class="large" type="text" name="nome" required="required" placeholder="Nome" value="<?php echo $nome_recurso; ?>">
-        <span class="icon-place"></span>
-
+<div class="page-header animate-slide-in">
+    <div>
+        <h1 class="page-title">Editar Recurso</h1>
+        <p class="page-subtitle">Modifique o nome, status ou categoria de '<?= e($recurso['nome_recurso']) ?>'.</p>
     </div>
- 
-  <div class="element-radio"><label class="title">Status:<span class="required"></span>
-  </label><div class="column column1">
-    <?php if ($status == 'Disponivel') {?>
-    <label><input type="radio" name="status" value="Disponivel" checked required="required"/><span>Disponivel</span></label>
-    <label><input type="radio" name="status" value="Indisponivel"  required="required"/><span>Indisponivel</span></label>
-    <?php } else {?> 
-    <label><input type="radio" name="status" value="Disponivel" required="required"/><span>Disponivel</span></label>
-    <label><input type="radio" name="status" value="Indisponivel" checked required="required"/><span>Indisponivel</span></label>
-    <?php } ?>
-  </div><span class="clearfix"></span>
+    <div class="page-actions">
+        <a href="gerencia_recurso.php" class="btn btn-secondary">
+            &larr; Voltar para Recursos
+        </a>
+    </div>
 </div>
 
-<div class="element-radio"><label class="title">Categoria<span class="required"></span></label> 
-  <div class="column column1">
-        <?php if ($categoria == "1"){ ?>
-              <label><input type="radio" name="categoria" value="1" checked required="required"/><span>Datashow</span></label>
-              <label><input type="radio" name="categoria" value="2"  required="required"/><span>Laboratório</span></label>
-              <label><input type="radio" name="categoria" value="3" required="required"/><span>Sala</span></label>
-              <label><input type="radio" name="categoria" value="4" required="required"/><span>Outros</span></label>
-        <?php } if ($categoria == "2"){ ?>
-              <label><input type="radio" name="categoria" value="1"  required="required"/><span>Datashow</span></label>
-              <label><input type="radio" name="categoria" value="2" checked required="required"/><span>Laboratório</span></label>
-              <label><input type="radio" name="categoria" value="3" required="required"/><span>Sala</span></label>
-              <label><input type="radio" name="categoria" value="4" required="required"/><span>Outros</span></label>
-        <?php } if ($categoria == "3"){ ?>
-              <label><input type="radio" name="categoria" value="1"  required="required"/><span>Datashow</span></label>
-              <label><input type="radio" name="categoria" value="2"  required="required"/><span>Laboratório</span></label>
-              <label><input type="radio" name="categoria" value="3" checked required="required"/><span>Sala</span></label>
-              <label><input type="radio" name="categoria" value="4" required="required"/><span>Outros</span></label>
-        <?php } if ($categoria == "4"){ ?>
-              <label><input type="radio" name="categoria" value="1"  required="required"/><span>Datashow</span></label>
-              <label><input type="radio" name="categoria" value="2"  required="required"/><span>Laboratório</span></label>
-              <label><input type="radio" name="categoria" value="3"  required="required"/><span>Sala</span></label>
-              <label><input type="radio" name="categoria" value="4" checked required="required"/><span>Outros</span></label>
-        <?php } ?>
-  </div>
-<span class="clearfix"></span>
+<div class="card animate-slide-in" style="max-width: 600px; margin: 0 auto;">
+    <div class="card-header">
+        <h2 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            <span>Editar Dados</span>
+        </h2>
+    </div>
+
+    <form method="POST" action="edit_recurso.php?id=<?= e($id) ?>">
+        <?= csrf_field() ?>
+
+        <div class="form-group">
+            <label for="nome" class="form-label">Nome do Recurso <span class="required">*</span></label>
+            <input 
+                type="text" 
+                id="nome" 
+                name="nome" 
+                class="form-control" 
+                value="<?= e($recurso['nome_recurso']) ?>" 
+                required
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="categoria" class="form-label">Categoria <span class="required">*</span></label>
+            <select name="categoria" id="categoria" class="form-select" required>
+                <option value="1" <?= $recurso['categoria'] == '1' ? 'selected' : '' ?>>Datashow</option>
+                <option value="2" <?= $recurso['categoria'] == '2' ? 'selected' : '' ?>>Laboratório</option>
+                <option value="3" <?= $recurso['categoria'] == '3' ? 'selected' : '' ?>>Sala</option>
+                <option value="4" <?= $recurso['categoria'] == '4' ? 'selected' : '' ?>>Outros</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="status" class="form-label">Status de Disponibilidade <span class="required">*</span></label>
+            <select name="status" id="status" class="form-select" required>
+                <option value="Disponivel" <?= strtolower($recurso['status']) === 'disponivel' ? 'selected' : '' ?>>Disponível para Reservas</option>
+                <option value="Indisponivel" <?= strtolower($recurso['status']) === 'indisponivel' ? 'selected' : '' ?>>Indisponível (Manutenção/Bloqueado)</option>
+            </select>
+        </div>
+
+        <div style="margin-top: 1.75rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <a href="gerencia_recurso.php" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">
+                Salvar Alterações
+            </button>
+        </div>
+    </form>
 </div>
-<div class="submit"><input name="submit" type="submit" value="Salvar"/></div></form>
-<!-- Stop Formoid form-->
-</body>
 
-</body>
-</html>
- <?php
- }
- include_once 'recursos.php';
- // connect to the database
- 
- // check if the form has been submitted. If it has, process the form and save it to the database
- if (isset($_POST['submit']))
- { 
- // confirm that the 'id' value is a valid integer before getting the form data
- if (is_numeric($_SESSION['id']))
- {
- // get form data, making sure it is valid
- $id = $_SESSION['id'];
- $nome_recurso = $_POST['nome'];
- $status = $_POST['status'];
- $categoria = $_POST['categoria'];
-
-
- if ($nome_recurso == '' || $status == '' )
- {
- // generate error message
- $error = 'ERROR: Please fill in all required fields!';
- 
- //error, display form
- renderForm($id, $nome_recurso, $status, $error);
- }
- else
- {
- // save the data to the database
- 
-    $recurso = new recursos;
-    $recurso->editar($id,$nome_recurso,$status,$categoria);
-    $recurso->VerificarRepeticao2();
-    $recurso->atualiza();
-
- }
- }
- else
- {
- // if the 'id' isn't valid, display an error
- echo 'Error';
- }
- }
- else
- // if the form hasn't been submitted, get the data from the db and display the form
- {
- // get the 'id' value from the URL (if it exists), making sure that it is valid (checing that it is numeric/larger than 0)
- if (isset($_GET['id']) && is_numeric($_GET['id']) && $_GET['id'] > 0)
- {
- // query db
- $id = $_GET['id'];
- $link = DB_Connect();
- mysqli_select_db($link, 'tcc');
- $result = "SELECT * from recursos WHERE cod_recurso=$id";
-
-    $query = $link->query($result);
-                           
-    $row = $link->query($result) or die($link->error());	
-
-    $result5 = $link->query($result) or die($link->error());	
-
- 	$row = $query->fetch_array();
- 
- // check that the 'id' matches up with a row in the databse
- if($row)
- {
- 
- // get data from db
- $nome_recurso = $row['nome_recurso'];
- $status = $row['status'];
- $categoria = $row['categoria'];
- $_SESSION['id'] = $row['cod_recurso'];
- // show form
- renderForm($id, $nome_recurso, $status, $categoria, '');
- }
- else
- // if no match, display result
- {
- echo "No results!";
- }
- }
- else
- // if the 'id' in the URL isn't valid, or if there is no 'id' value, display an error
- {
- echo 'Error!';
- }
- }
-?>
+<?php
+render_footer();

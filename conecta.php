@@ -1,22 +1,18 @@
 <?php
-	include('conf.inc.php');
-/*	$db=mysql_connect ($servidor, $usuario, $senhadb)
-	or die ('Impossível conectar no bando de dados: ' . mysql_error());
-	mysql_select_db($banco);
-*/
-	function DB_Connect(){
-	$link = @mysqli_connect (DB_HOSTNAME, DB_USERNAME, DB_PASSWORD, DB_DATABASE ) or die (@mysqli_connect_error('Erro!'));
-	
-	@mysqli_set_charset ($link, DB_CHARSET) or die (@mysqli_error($link));
+/**
+ * Conexao com o banco de dados - Camada retrocompativel modernizada
+ */
 
-	return $link;
+require_once __DIR__ . '/core/bootstrap.php';
+
+if (!function_exists('DB_Connect')) {
+    function DB_Connect() {
+        return DB::mysqli();
+    }
 }
 
-# ECHA CONEXÃO 
-
-	function DB_Close ($link){
-		@mysqli_close ($link) or die (mysqli_error($link)); 
-	}
-
-
-?>
+if (!function_exists('DB_Close')) {
+    function DB_Close($link = null) {
+        return true;
+    }
+}

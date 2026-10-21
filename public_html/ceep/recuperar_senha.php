@@ -1,120 +1,91 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-<meta charset="UTF-8">
-<title>Recuperar Senha</title>
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-</head>
-<body>
-
 <?php
+/**
+ * CEEP Reservas - Recuperação de Senha
+ */
 
-require_once('conecta.php');
+require_once __DIR__ . '/core/bootstrap.php';
 
-class RecuperarSenha {
+$mensagem = null;
+$tipoMensagem = null;
 
-    private $email;
-    private $novaSenha;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $identificador = trim($_POST['identificador'] ?? '');
 
-    private function conecta() {
-        return DB_Connect();
-    }
+    if (!empty($identificador)) {
+        $u = DB::fetchOne(
+            "SELECT * FROM usuarios WHERE email = ? OR matricula = ? OR cpf = ?",
+            [$identificador, $identificador, $identificador]
+        );
 
-    public function setEmail($email) {
-        $this->email = trim($email);
-    }
-
-    public function verificarEmail() {
-        $link = $this->conecta();
-
-        $stmt = $link->prepare("SELECT id FROM usuarios WHERE email = ?");
-        $stmt->bind_param("s", $this->email);
-        $stmt->execute();
-        $resultado = $stmt->get_result();
-
-        if ($resultado->num_rows === 0) {
-            $this->alerta("error", "Email não cadastrado!", "formulario_senha_perdida.html");
-            exit;
+        if ($u) {
+            // Em ambiente escolar local, orienta o usuário ou envia e-mail conforme configurado
+            $mensagem = "Localizamos sua conta ({$u['nome']}). Por favor, entre em contato com a coordenação pedagógica ou administrador para a reinicialização temporária da sua senha.";
+            $tipoMensagem = 'info';
+        } else {
+            $mensagem = "Nenhuma conta foi localizada com os dados informados.";
+            $tipoMensagem = 'error';
         }
-
-        return true;
-    }
-
-    private function gerarSenha() {
-        $chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        $senha = "";
-
-        for ($i = 0; $i < 8; $i++) {
-            $senha .= $chars[random_int(0, strlen($chars) - 1)];
-        }
-
-        return $senha;
-    }
-
-    public function atualizarSenha() {
-        $link = $this->conecta();
-
-        $this->novaSenha = $this->gerarSenha();
-
-        // 🔐 HASH MODERNO
-        $hash = password_hash($this->novaSenha, PASSWORD_DEFAULT);
-
-        $stmt = $link->prepare("UPDATE usuarios SET senha = ? WHERE email = ?");
-        $stmt->bind_param("ss", $hash, $this->email);
-
-        if (!$stmt->execute()) {
-            $this->alerta("error", "Erro ao atualizar senha!", "formulario_senha_perdida.html");
-            exit;
-        }
-
-        $this->enviarEmail();
-    }
-
-    private function enviarEmail() {
-        $to = $this->email;
-        $subject = "Recuperação de Senha";
-
-        $mensagem = "
-            <h3>Sua nova senha</h3>
-            <p><strong>{$this->novaSenha}</strong></p>
-        ";
-
-        $headers = "MIME-Version: 1.0\r\n";
-        $headers .= "Content-type:text/html;charset=UTF-8\r\n";
-        $headers .= "From: Sistema <no-reply@seusite.com>\r\n";
-
-        mail($to, $subject, $mensagem, $headers);
-
-        $this->alerta("success", "Nova senha enviada para seu email!", "index.php");
-    }
-
-    private function alerta($tipo, $mensagem, $redirect) {
-        echo "
-        <script>
-            Swal.fire({
-                icon: '$tipo',
-                text: '$mensagem'
-            }).then(() => {
-                window.location.href = '$redirect';
-            });
-        </script>
-        ";
+    } else {
+        $mensagem = "Por favor, informe seu e-mail, matrícula ou CPF.";
+        $tipoMensagem = 'warning';
     }
 }
-
-// ===================== EXECUÇÃO =====================
-
-if (isset($_POST['email'])) {
-    $rec = new RecuperarSenha();
-    $rec->setEmail($_POST['email']);
-    $rec->verificarEmail();
-    $rec->atualizarSenha();
-}
-
 ?>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recuperar Senha — CEEP Reservas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="core/app.css?v=2026.1">
+</head>
+<body class="login-body">
+    <div class="login-card animate-slide-in">
+        <div class="login-brand">
+            <div class="login-icon-box">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+            <h1 class="login-title">Recuperar <span style="color: var(--primary);">Senha</span></h1>
+            <p class="login-subtitle">Identifique sua conta para orientações de acesso</p>
+        </div>
 
+        <?php if ($mensagem): ?>
+            <div class="ceep-alert alert-<?= e($tipoMensagem) ?> animate-slide-in">
+                <div class="alert-content"><?= e($mensagem) ?></div>
+            </div>
+        <?php endif; ?>
+
+        <form method="POST" action="recuperar_senha.php">
+            <?= csrf_field() ?>
+
+            <div class="form-group">
+                <label for="identificador" class="form-label">E-mail, Matrícula ou CPF</label>
+                <input 
+                    type="text" 
+                    id="identificador" 
+                    name="identificador" 
+                    class="form-control" 
+                    placeholder="Digite seu e-mail ou número de matrícula" 
+                    required 
+                    autofocus
+                >
+            </div>
+
+            <div style="margin-top: 1.5rem;">
+                <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+                    <span>Localizar Conta</span>
+                </button>
+            </div>
+
+            <div style="margin-top: 1.25rem; text-align: center;">
+                <a href="index.php" style="color: var(--slate-600); text-decoration: none; font-size: 0.88rem; font-weight: 500;">
+                    &larr; Voltar para a Tela de Login
+                </a>
+            </div>
+        </form>
+    </div>
 </body>
 </html>

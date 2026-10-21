@@ -1,54 +1,35 @@
-<meta charset='utf-8'>
-<?php 
-  if (!isset($_SESSION)) {
-    session_start();
-   }
-  if (empty($_SESSION['usuario_id'])) { header("Location: index.php"); exit; }
-
-?>
-
-<script src="sweetalert-dev.min.js"/> </script>
-<script src="stylesheet" href="sweetalert.css" /> </script>
-<link rel="stylesheet" href="sweetalert.min.css" type="text/css" />
-
 <?php
+/**
+ * CEEP Reservas - Exclusão Segura de Recurso (Administrador)
+ */
 
- $id = isset($_GET['id']);
+require_once __DIR__ . '/core/bootstrap.php';
+auth_require(['a']);
 
- if (isset($_GET['id']) && is_numeric($_GET['id']))
- {
- $id = $_GET['id'];
- 
-    ?> 
-    <BODY > 
-    <?php
-    
-    echo ("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){  
-                        swal({   title: '',   
-                        text: 'Deseja realmente excluir este recurso?',   
-                        type: 'warning',   
-                        showCancelButton: true,   
-                        confirmButtonColor: '#DD6B55',   
-                        confirmButtonText: 'Sim',
-                        cancelButtonText: 'Não',   
-                        closeOnConfirm: false 
-                        }, 
+$id = (int)($_REQUEST['id'] ?? 0);
 
-                        function(isConfirm){   
-                            if (isConfirm) {     
-                               top.location.href = 'del_recurso.php?id=$id' 
-                            } 
-                            else {     
-                                top.location.href = 'gerencia_recurso.php'  
-                            } 
-                        }
-
-                        );} </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>");
-                        
+if ($id <= 0) {
+    set_flash('error', 'Identificador de recurso inválido.', 'Erro');
+    header('Location: gerencia_recurso.php');
+    exit();
 }
- else
- {
- 	echo "Não foi-se";
- }
- 
-?>
+
+try {
+    $rec = DB::fetchOne("SELECT nome_recurso FROM recursos WHERE cod_recurso = ?", [$id]);
+    if ($rec) {
+        // Exclui reservas vinculadas ao recurso
+        DB::execute("DELETE FROM reservas WHERE cod_recurso = ?", [$id]);
+        // Exclui o recurso
+        DB::execute("DELETE FROM recursos WHERE cod_recurso = ?", [$id]);
+
+        set_flash('success', "Recurso '{$rec['nome_recurso']}' e suas reservas foram removidos com sucesso.", 'Recurso Excluído');
+    } else {
+        set_flash('error', 'Recurso não encontrado.', 'Erro');
+    }
+} catch (Throwable $t) {
+    error_log('Erro ao excluir recurso: ' . $t->getMessage());
+    set_flash('error', 'Ocorreu um erro no servidor ao excluir o recurso.', 'Erro no Sistema');
+}
+
+header('Location: gerencia_recurso.php');
+exit();

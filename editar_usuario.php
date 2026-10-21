@@ -1,246 +1,175 @@
 <?php
+/**
+ * CEEP Reservas - Edição de Dados Pessoais / Usuário
+ */
 
-if (!isset($_SESSION)) {
-  session_start();
+require_once __DIR__ . '/core/bootstrap.php';
+auth_require(['a', 'p']);
+
+$userLogado = auth_user();
+$isAdmin = auth_is_admin();
+
+// Se o admin passar ?id=XX ele edita o usuário solicitado; senão edita seu próprio perfil
+$targetId = (int)($_GET['id'] ?? $userLogado['id']);
+if (!$isAdmin && $targetId !== (int)$userLogado['id']) {
+    $targetId = (int)$userLogado['id'];
 }
 
-if (empty($_SESSION['usuario_id'])) { header("Location: index.php"); exit; }
-
-if($_SESSION["cpf"]==""){
-  echo("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){ alert('Você ainda não está logado!.'); window.navigate('index.php'); } </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>");
-  exit();
+$u = DB::fetchOne("SELECT * FROM usuarios WHERE usuario_id = ?", [$targetId]);
+if (!$u) {
+    set_flash('error', 'Usuário não encontrado.', 'Erro');
+    header('Location: home.php');
+    exit();
 }
 
-if($_SESSION["tipo"]!="p"){
-  if ($_SESSION["tipo"]!="a"){
-  echo("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){ alert('Você não tem permissão para acessar essa página!.'); window.navigate('index.php'); } </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>");
-  exit();
-  }
-}
-$nome=$_SESSION["nome"];
-if (isset($_SESSION["categoria"])){
-  $_SESSION["categoria"] = "1";
-  $_SESSION["cod_sala"] = "1";  
-  $_SESSION["qualsemana"] = "1";
-}
-
-?>
-<!doctype html>
-<html lang=''>
-<head>
-   <meta charset='utf-8'>
-   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-   <meta name="viewport" content="width=device-width, initial-scale=1">
-   <link rel="stylesheet" href="styles.css">
-   <link rel="stylesheet" href="css/normalize.css">
-   <script src="http://code.jquery.com/jquery-latest.min.js" type="text/javascript"></script>
-   <title>Dados Pessoais</title>
-</head>
-<body>
-<section>
-<?php if ($_SESSION["tipo"]=="p"){
-
-?>
-<body class="h2" style="background-color:#DCDCDC">
-       <img src="css/logook.jpg" alt="Imagem Logo" width="100%" height="10%" > 
-</body>
-<?php } else {
-  ?>
-
-<body class="h2" style="background-image:#DCDCDC">
-       <img src="css/logook1.jpg" alt="Imagem Logo" width="100%" height="10%" > 
-</body>
-<?php } 
-?>
-</section>
-<divclass="h2" id='cssmenu'>
-<ul>
-   <li class='has-sub'><a href='home.php'>Inicio</a></li>
-   <?php if ($_SESSION["tipo"]=="a"){ ?>
-   <li class='has-sub' ><a href='#'>Usuarios</a>
-            <ul>
-               <li><a href='formulario_cadastro.php'><span>Adicionar</span></a></li>
-               <li><a href='view-paginated.php'><span>Gerenciar</span></a></li>
-                <li><a href='excluir_reservas.php'><span>Reservas</span></a></li> 
-               
-            </ul>
-         </li>
-   <li class='has-sub'><a href='#'>Recursos</a>
-            <ul>
-               <li><a href='recurso.php'><span>Adicionar</span></a></li>
-               <li><a href='gerencia_recurso.php'><span>Gerenciar</span></a></li>
-            </ul>
-   </li>
-   <?php } ?> 
-   <li class='has-sub'><a href='#'>Reservas</a>
-            <ul>
-               <li><a href='user1.php'><span>Reservar</span></a>
-                     
-                </li>
-               <li><a href='apagar.php'><span>Cancelar</span></a></li>
-               <li><a href='reservas.php'><span>Minhas reservas</span></a></li>
-               
-            </ul>
-   </li>
-   <li class='active has-sub'><a href='#'>Meu Perfil</a>
-            <ul>
-               <li><a href='editar_usuario.php'><span>Dados pessoais</span></a></li>
-               <li><a href='modificar_senha.php'><span>Alterar senha</span></a></li>
-            </ul>
-   </li>
-   <li class='has-sub'><a href='logout.php'>Sair</a></li>
-</ul>
-</div>
-<body class="blurBg-false" style="background-color:#EBEBEB">
-
-<?php 
-
- function renderForm($id, $nome, $sobrenome, $cpf, $matricula, $email , $error)
-
- {
-?>
-<br>
-<!-- Start Formoid form-->
-<link rel="stylesheet" href="cadastrar_files/formoid1/formoid-solid-blue.css" type="text/css" />
-<form class="formoid-solid-blue" method="post" action="" style="background-color:#FFFFFF;font-size:14px;
-font-family:'Roboto',Arial,Helvetica,sans-serif;color:black;max-width:480px;min-width:150px" method="post">
-<div class="title"><h2>Dados pessoais</h2></div>
-<!--<div class="item-cont" >
-<div class="element-input"><label class="title">ID:<span class="required"></span></label><div class="item-cont">
-    <input  size="2" type="text" name="id" required="required"  value="<?php echo $id;?>"readonly>
-    <span class="icon-place"></span></div></div> -->
-<div class="item-cont" >
-<div class="element-input"><label class="title"><b>Nome</b><span class="required"></span></label><div class="item-cont">
-    <input class="large" type="text" size="12" maxlength=12 name="nome" required="required" placeholder="Matricula" value="<?php echo $nome;?>">
-    <span class="icon-place"></span></div></div>
-    <br>
-<div class="element-input"><label class="title"><b>Sobrenome</b><span class="required"></span></label><div class="item-cont">
-    <input class="large" type="text" name="sobrenome" required="required" placeholder="Matricula" value="<?php echo $sobrenome;?>">
-    <span class="icon-place"></span></div></div>
-    <br>
-<!--
-<div class="element-input"><label class="title">Matrícula:<span class="required"></span></label><div class="item-cont">
-    <input class="large" type="text" name="matricula" required="required" placeholder="Matricula" value="<?php echo $matricula;?>"readonly>
-    <span class="icon-place"></span></div></div> -->
-
-  <div class="element-input"><label class="title"><b>CPF</b><span class="required"></span></label><div class="item-cont">
-    <input class="large" type="text" name="cpf" required="required" placeholder="CPF" value=<?php echo $cpf;?>>
-    <span class="icon-place"></span></div></div>
-    <br>
-  <div class="element-email"><label class="title"><b>Email</b><span class="required"></span></label><div class="item-cont">
-    <input class="large" type="email" name="email" required="required" placeholder="Email" value=<?php echo $email;?>>
-    <span class="icon-place"></span></div></div></br>
-    <br>
-    <!--<a href='modificar_senha.php' ><CENTER>Clique aqui para alterar senha</CENTER></a></div> -->
-<div class="submit"><input type="submit" name="submit" value="Salvar"/></div></form>
-<!-- Stop Formoid form-->
-</body>
-</body>
-<html>
-
-<?php 
-}
-
- include_once 'usuario.php';
- // connect to the database
- 
- // check if the form has been submitted. If it has, process the form and save it to the database
- if (isset($_POST['submit']))
- { 
- // confirm that the 'id' value is a valid integer before getting the form data
- if (is_numeric($_SESSION['usuario_id']))
- {
- // get form data, making sure it is valid
- $id = $_SESSION['usuario_id'];
- $nome = $_POST['nome'];
- $sobrenome = $_POST['sobrenome'];
- $cpf = $_POST['cpf'];
- //$matricula = $_POST['matricula'];
- $email = $_POST['email'];
-   
-
- // check that firstname/lastname fields are both filled in
- if ($nome == '' || $sobrenome == '' || $cpf == ''  || $email == '')
- {
- // generate error message
- $error = 'ERROR: Please fill in all required fields!';
- 
- //error, display form
- renderForm($id, $nome, $sobrenome, $cpf , $matricula , $email, $error);
- }
- else
- {
- // save the data to the database
-    
-    $user = new usuario;
-    $user->editarperfil($id,$nome,$sobrenome, $cpf, $email);
-    $valor=$user->VerificarRepeticao3();
-    if ($valor==0){
-      $user->atualizaperfil(); 
-
-      $_SESSION['nome'] = $nome;
-      $_SESSION['cpf'] = $cpf;
-      $_SESSION['email'] = $email;
-      
+// Processamento POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!csrf_verify()) {
+        set_flash('error', 'Token de segurança inválido.', 'Erro');
+        header('Location: editar_usuario.php?id=' . $targetId);
+        exit();
     }
-    
 
- }
- }
- else
- {
- // if the 'id' isn't valid, display an error
- echo 'Error';
- }
- }
- else
- // if the form hasn't been submitted, get the data from the db and display the form
- {
- // get the 'id' value from the URL (if it exists), making sure that it is valid (checing that it is numeric/larger than 0)
- 
-  if (empty($_SESSION['usuario_id'])) { header("Location: index.php"); exit; }
- $id = $_SESSION["usuario_id"];
- $link = DB_Connect();
- mysqli_select_db($link, 'tcc');
- $result = "SELECT * from usuarios WHERE usuario_id=$id";
+    $nome = trim($_POST['nome'] ?? '');
+    $sobrenome = trim($_POST['sobrenome'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $cpf = preg_replace('/\D/', '', $_POST['cpf'] ?? '');
+    $matricula = preg_replace('/\D/', '', $_POST['matricula'] ?? '');
+    $tipo = ($isAdmin && isset($_POST['tipo'])) ? trim($_POST['tipo']) : $u['tipo'];
 
-    $query = $link->query($result);
-                           
-    $row = $link->query($result) or die($link->error());  
+    if (empty($nome) || empty($email) || empty($cpf) || empty($matricula)) {
+        set_flash('error', 'Por favor, preencha todos os campos obrigatórios.', 'Campos Incompletos');
+        header('Location: editar_usuario.php?id=' . $targetId);
+        exit();
+    }
 
-    $result5 = $link->query($result) or die($link->error());  
+    try {
+        // Valida duplicidades ignorando o próprio usuário
+        $dupEmail = DB::fetchOne("SELECT usuario_id FROM usuarios WHERE LOWER(email) = LOWER(?) AND usuario_id != ?", [$email, $targetId]);
+        if ($dupEmail) {
+            set_flash('warning', 'Este e-mail já está em uso por outro usuário.', 'E-mail Duplicado');
+            header('Location: editar_usuario.php?id=' . $targetId);
+            exit();
+        }
 
-  $row = $query->fetch_array();
- 
- // check that the 'id' matches up with a row in the databse
- if($row)
- {
- 
- // get data from db
- $nome = $row['nome'];
- $sobrenome = $row['sobrenome'];
- $cpf = $row['cpf'];
- $matricula = $row['matricula'];
- $email = $row['email'];
- 
- // show form
- renderForm($id, $nome, $sobrenome, $cpf, $matricula, $email, '');
- }
- else
- // if no match, display result
- {
- echo ("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){  
-                       swal ({
-                                title:'',
-                                text:'Sem resultados',
-                                type:''
-                                },
-                                function(){
-                                  top.location.href = 'editar_usuario.php'
-                                }
-                              ); } </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>");
+        $dupCpf = DB::fetchOne("SELECT usuario_id FROM usuarios WHERE cpf = ? AND usuario_id != ?", [$cpf, $targetId]);
+        if ($dupCpf) {
+            set_flash('warning', 'Este CPF já está cadastrado para outro usuário.', 'CPF Duplicado');
+            header('Location: editar_usuario.php?id=' . $targetId);
+            exit();
+        }
 
- }
- 
- }
+        $dupMat = DB::fetchOne("SELECT usuario_id FROM usuarios WHERE matricula = ? AND usuario_id != ?", [$matricula, $targetId]);
+        if ($dupMat) {
+            set_flash('warning', 'Esta matrícula já pertence a outro usuário.', 'Matrícula Duplicada');
+            header('Location: editar_usuario.php?id=' . $targetId);
+            exit();
+        }
+
+        // Se a matrícula mudou, atualiza reservas existentes
+        if ($matricula != $u['matricula']) {
+            DB::execute("UPDATE reservas SET matricula = ? WHERE matricula = ?", [$matricula, $u['matricula']]);
+        }
+
+        DB::execute(
+            "UPDATE usuarios SET nome = ?, sobrenome = ?, email = ?, cpf = ?, matricula = ?, tipo = ? WHERE usuario_id = ?",
+            [$nome, $sobrenome, $email, $cpf, $matricula, $tipo, $targetId]
+        );
+
+        // Se atualizou o próprio perfil, reflete na sessão
+        if ($targetId === (int)$userLogado['id']) {
+            $_SESSION['nome'] = $nome;
+            $_SESSION['sobrenome'] = $sobrenome;
+            $_SESSION['email'] = $email;
+            $_SESSION['cpf'] = $cpf;
+            $_SESSION['matricula'] = $matricula;
+            $_SESSION['tipo'] = $tipo;
+        }
+
+        set_flash('success', 'Dados atualizados com sucesso!', 'Perfil Atualizado');
+        header('Location: ' . ($isAdmin && $targetId !== (int)$userLogado['id'] ? 'view-paginated.php' : 'editar_usuario.php'));
+        exit();
+    } catch (Throwable $t) {
+        error_log('Erro ao atualizar usuário: ' . $t->getMessage());
+        set_flash('error', 'Erro no servidor ao salvar as alterações.', 'Erro no Sistema');
+    }
+}
+
+render_header('Dados Pessoais', 'perfil');
 ?>
+
+<div class="page-header animate-slide-in">
+    <div>
+        <h1 class="page-title">
+            <?= $targetId === (int)$userLogado['id'] ? 'Meus Dados Pessoais' : 'Editar Usuário: ' . e($u['nome']) ?>
+        </h1>
+        <p class="page-subtitle">Mantenha suas informações cadastrais atualizadas para comunicação e reservas.</p>
+    </div>
+    <div class="page-actions">
+        <?php if ($isAdmin): ?>
+        <a href="view-paginated.php" class="btn btn-secondary">&larr; Voltar para Lista</a>
+        <?php endif; ?>
+    </div>
+</div>
+
+<div class="card animate-slide-in" style="max-width: 680px; margin: 0 auto;">
+    <div class="card-header">
+        <h2 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>Informações da Conta</span>
+        </h2>
+    </div>
+
+    <form method="POST" action="editar_usuario.php?id=<?= e($targetId) ?>">
+        <?= csrf_field() ?>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="nome" class="form-label">Nome <span class="required">*</span></label>
+                <input type="text" id="nome" name="nome" class="form-control" value="<?= e($u['nome']) ?>" required>
+            </div>
+            <div class="form-group">
+                <label for="sobrenome" class="form-label">Sobrenome <span class="required">*</span></label>
+                <input type="text" id="sobrenome" name="sobrenome" class="form-control" value="<?= e($u['sobrenome']) ?>" required>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="matricula" class="form-label">Matrícula <span class="required">*</span></label>
+                <input type="text" id="matricula" name="matricula" class="form-control" value="<?= e($u['matricula']) ?>" required>
+            </div>
+            <div class="form-group">
+                <label for="cpf" class="form-label">CPF <span class="required">*</span></label>
+                <input type="text" id="cpf" name="cpf" class="form-control" value="<?= e($u['cpf']) ?>" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="email" class="form-label">E-mail <span class="required">*</span></label>
+            <input type="email" id="email" name="email" class="form-control" value="<?= e($u['email']) ?>" required>
+        </div>
+
+        <?php if ($isAdmin): ?>
+        <div class="form-group">
+            <label for="tipo" class="form-label">Perfil de Acesso</label>
+            <select name="tipo" id="tipo" class="form-select">
+                <option value="p" <?= $u['tipo'] === 'p' ? 'selected' : '' ?>>Professor</option>
+                <option value="a" <?= $u['tipo'] === 'a' ? 'selected' : '' ?>>Administrador</option>
+            </select>
+        </div>
+        <?php endif; ?>
+
+        <div style="margin-top: 1.75rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+            <a href="modificar_senha.php" class="btn btn-secondary btn-sm">
+                Alterar Minha Senha
+            </a>
+            <button type="submit" class="btn btn-primary">
+                Salvar Alterações
+            </button>
+        </div>
+    </form>
+</div>
+
+<?php
+render_footer();

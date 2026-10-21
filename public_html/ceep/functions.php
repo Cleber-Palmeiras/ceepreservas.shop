@@ -1,21 +1,8 @@
-<?php 
-  if (!isset($_SESSION)) {
-    session_start();
-   }
-  if (empty($_SESSION['usuario_id'])) { header("Location: index.php"); exit; }
-
-?>
-
 <?php
-function session_checker(){
+require_once __DIR__ . '/core/bootstrap.php';
 
-if (!isset($_SESSION['usuario_id'])){
-
-header ("Location:index.php");
-exit();
-
+if (!function_exists('session_checker')) {
+    function session_checker() {
+        auth_require(['a', 'p']);
+    }
 }
-
-}
-
-?>

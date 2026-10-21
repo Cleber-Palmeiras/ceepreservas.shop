@@ -1,58 +1,57 @@
-</style>
-<!DOCTYPE html>
-<html >
-<script src="sweetalert-dev.min.js"/> </script>
-<link rel="stylesheet" href="sweetalert.min.css" type="text/css" />
-<link rel="stylesheet" href="css/stilo.css" href="css/bootstrap-responsive">
-<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">
-<head>
-    <title>Reserva de recursos</title>     
-</head>
-</style>
+<?php
+/**
+ * CEEP Reservas - Cancelamento Seguro de Reserva
+ */
 
-<?php 
+require_once __DIR__ . '/core/bootstrap.php';
+auth_require(['a', 'p']);
 
-if (!isset($_SESSION)) {
-    session_start();
-}
-if (empty($_SESSION['usuario_id'])) {
-    header("Location: index.php");
-    exit;
+$user = auth_user();
+$matricula = $user['matricula'];
+$isAdmin = auth_is_admin();
+
+$id = (int)($_REQUEST['id'] ?? 0);
+
+if ($id <= 0) {
+    set_flash('error', 'Identificador de reserva inválido.', 'Erro');
+    header('Location: home.php');
+    exit();
 }
 
- $ID = $_REQUEST["id"];
+try {
+    // Busca a reserva para validar posse e detalhes
+    $reserva = DB::fetchOne(
+        "SELECT r.*, rec.nome_recurso 
+         FROM reservas r
+         LEFT JOIN recursos rec ON r.cod_recurso = rec.cod_recurso
+         WHERE r.ID = ?",
+        [$id]
+    );
 
- require_once('conecta.php');
-
- $link= DB_Connect();
- $iu = $_SESSION["matricula"]; // ID USUARIO
- $sql = "DELETE FROM reservas WHERE ID='$ID' AND matricula='$iu'";
-
-  if ($link->query($sql) == TRUE) {
-                      echo ("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){  
-                        swal({
-                                title:'',
-                                text:'Reserva Cancelada! :(',
-                                type:'error'
-                                },
-                                function(){
-                                  top.location.href = 'user1.php'
-                                }
-                              ); } </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>"); 
-                         return;       
-          
-    } else {
-           echo ("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){  
-                        swal({
-                                title:'',
-                                text:'Erro ao cancelar',
-                                type:'error'
-                                },
-                                function(){
-                                  top.location.href = 'user1.php'
-                                }
-                              ); } </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>"); 
-
+    if (!$reserva) {
+        set_flash('error', 'Reserva não encontrada ou já cancelada.', 'Erro');
+        header('Location: home.php');
+        exit();
     }
 
-?>
+    // Apenas o próprio dono da reserva ou um administrador pode cancelar
+    if (!$isAdmin && $reserva['matricula'] != $matricula) {
+        set_flash('error', 'Você não tem permissão para cancelar uma reserva de outro usuário.', 'Acesso Negado');
+        header('Location: home.php');
+        exit();
+    }
+
+    // Executa cancelamento com prepared statement seguro
+    DB::execute("DELETE FROM reservas WHERE ID = ?", [$id]);
+
+    $dataFormatada = date('d/m/Y \à\s H:i', strtotime($reserva['datatempo']));
+    set_flash('success', "A reserva de '{$reserva['nome_recurso']}' para {$dataFormatada} foi cancelada com sucesso.", 'Reserva Cancelada');
+} catch (Throwable $t) {
+    error_log('Erro ao cancelar reserva: ' . $t->getMessage());
+    set_flash('error', 'Ocorreu um erro no servidor ao cancelar a reserva.', 'Erro no Sistema');
+}
+
+// Redireciona de volta de forma limpa
+$referer = $_SERVER['HTTP_REFERER'] ?? 'reservas.php';
+header('Location: ' . $referer);
+exit();

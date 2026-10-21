@@ -1,27 +1,17 @@
-<?php 
-  if (!isset($_SESSION)) {
-    session_start();
-   }
-  if (empty($_SESSION['usuario_id'])) { header("Location: index.php"); exit; }
-
-?>
-
-<html>
-<head>
-<script src="sweetalert-dev.min.js"/> </script>
-<script src="stylesheet" href="sweetalert.css" /> </script>
-<link rel="stylesheet" href="sweetalert.min.css" type="text/css" />
-<meta charset = "UTF-8 ">
-</head>
-</html>
 <?php
+require_once __DIR__ . '/core/bootstrap.php';
 
-//echo ("<SCRIPT LANGUAGE=\"JavaScript\"> 
- //                       swal({ title: 'Saindo....', timer: 500, showConfirmButton: false}) </SCRIPT>"); 
+if (session_status() === PHP_SESSION_ACTIVE) {
+    $_SESSION = [];
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params["path"], $params["domain"],
+            $params["secure"], $params["httponly"]
+        );
+    }
+    session_destroy();
+}
 
-session_destroy();
-
-include "index.php";
-
-
-?>
+header("Location: index.php");
+exit();

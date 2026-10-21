@@ -1,98 +1,66 @@
-<html>
-<head>
-        <meta charset = "UTF-8 ">
-    </head>
-<html>
 <?php
+/**
+ * CEEP Reservas - Processamento Seguro de Login
+ */
 
-require_once "conecta.php";
+require_once __DIR__ . '/core/bootstrap.php';
 
-$matricula = preg_replace('/[^[:alnum:]_]/', '',$_POST["matricula"]);
-$senha = preg_replace('/[^[:alnum:]_]/', '',$_POST["senha"]);
-
-//$matricula = $_POST["matricula"]; 
-//$senha = $_POST["senha"]; 
-
-
-if ((!$matricula) || (!$senha)){
-
-//echo "Por favor, todos campos devem ser preenchidos! <br /><br />";
-
-echo ("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){ swal('Dados inválidos!', '', 'error'); window.navigate('index.php'); } </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>");
-
-include "index.php";
-
-}else{
-
-        $codifica = hash('sha512',$senha);
-        //AGORA RETORNO O VALOR FINAL ENCRIPTADO
-        
-        $senha = $codifica;
-
-        $link = DB_Connect();
-
-session_start(); // Inicia a session
-
-$sql = "SELECT * FROM usuarios WHERE matricula='{$matricula}' AND senha='{$senha}'";
-/* AND ativado='1'"
-*/
-
-$query = $link->query($sql);
-
-$login_check = $query->num_rows;
-
-if ($login_check > 0){
-
-while ($row = $query->fetch_array()){
-
-foreach ($row AS $key => $val){
-
-$$key = stripslashes( $val );
-
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: index.php');
+    exit();
 }
 
+$rawInput = trim($_POST['matricula'] ?? '');
+$senha = $_POST['senha'] ?? '';
 
-$_SESSION['usuario_id'] = $usuario_id;
-$_SESSION['nome'] = $nome;
-$_SESSION['sobrenome'] = $sobrenome;
-$_SESSION['cpf'] = $cpf;
-$_SESSION['matricula'] = $matricula;
-$_SESSION['email'] = $email;
-$_SESSION['tipo'] = $tipo;
-$_SESSION['leitura'] = $leitura;
-$_SESSION['mensagem'] = $mensagem;
-$_SESSION['nivel_usuario'] = $nivel_usuario;
-$_SESSION['data_ultimo_login'] = $data_ultimo_login;
-$_SESSION['senha'] = $senha;
-$_SESSION["login"] = "true";
+// Permite buscar tanto por matrícula quanto por CPF (apenas números)
+$identificador = preg_replace('/\D/', '', $rawInput);
 
-$id = $_SESSION['usuario_id'];
-
-date_default_timezone_set('America/Fortaleza');
-$date = date('Y-m-d H:i');
-
-$sql1 = "UPDATE usuarios SET data_ultimo_login = '$date' WHERE usuario_id ='$id'";
-
-if ($link->query($sql1) == TRUE) {
- //echo "FOI" ;                             
-}
-else {
-	//echo "Não foi-se";
+if (empty($identificador) || empty($senha)) {
+    $_SESSION['login'] = 'false';
+    header('Location: index.php');
+    exit();
 }
 
-header("Location: home.php");
+try {
+    // Busca usuário por matrícula ou por CPF usando prepared statements
+    $user = DB::fetchOne(
+        "SELECT * FROM usuarios WHERE (matricula = ? OR cpf = ?) LIMIT 1",
+        [$identificador, $identificador]
+    );
+
+    if ($user && verify_and_upgrade_password($senha, $user['senha'], (int)$user['usuario_id'])) {
+        // Regenera ID de sessão para prevenir fixation attacks
+        session_regenerate_id(true);
+
+        $_SESSION['usuario_id'] = $user['usuario_id'];
+        $_SESSION['nome'] = $user['nome'];
+        $_SESSION['sobrenome'] = $user['sobrenome'] ?? '';
+        $_SESSION['cpf'] = $user['cpf'];
+        $_SESSION['matricula'] = $user['matricula'];
+        $_SESSION['email'] = $user['email'];
+        $_SESSION['tipo'] = $user['tipo']; // 'a' ou 'p'
+        $_SESSION['nivel_usuario'] = $user['nivel_usuario'] ?? '0';
+        $_SESSION['data_ultimo_login'] = $user['data_ultimo_login'] ?? date('Y-m-d H:i:s');
+        $_SESSION['login'] = 'true';
+
+        // Atualiza data do último login
+        DB::execute(
+            "UPDATE usuarios SET data_ultimo_login = ? WHERE usuario_id = ?",
+            [date('Y-m-d H:i:s'), $user['usuario_id']]
+        );
+
+        set_flash('success', 'Bem-vindo de volta, ' . e($user['nome']) . '!', 'Login efetuado com sucesso');
+        header('Location: home.php');
+        exit();
+    } else {
+        $_SESSION['login'] = 'false';
+        header('Location: index.php');
+        exit();
+    }
+} catch (Throwable $t) {
+    error_log('Login error: ' . $t->getMessage());
+    $_SESSION['login'] = 'false';
+    header('Location: index.php');
+    exit();
 }
-}else{
-
-//echo "Você não pode logar-se! Este usuário e/ou senha não são válidos!<br />
-//Por favor tente novamente!<br />";
-$_SESSION["login"] = "false";
-//echo ("<SCRIPT LANGUAGE=\"JavaScript\"> function tela(){ swal('Dados inválidos!', '', 'error');  } </SCRIPT> <BODY OnLoad=\"javascript:tela();\" > </body>");
-include "index.php";
-
-
-}
-
-}
-
-?>
