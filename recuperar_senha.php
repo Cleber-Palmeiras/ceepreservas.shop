@@ -40,12 +40,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="core/app.css?v=2026.1">
+    <link rel="stylesheet" href="core/app.css?v=2026.3">
 </head>
 <body class="login-body">
     <div class="login-card animate-slide-in">
         <div class="login-brand">
-            <div style="display: flex; justify-content: center; margin-bottom: 0.85rem;"><img src="CRTI.png" alt="Logo CRTI" class="login-logo-img"></div>
+            <div style="display: flex; justify-content: center; margin-bottom: 0.85rem;"><img src="CRTI.png" alt="Logo CRTI" class="login-logo-img" style="height: 80px !important; max-height: 80px !important; width: auto !important; max-width: 95px !important; object-fit: contain !important; margin: 0 auto; display: block;" height="80"></div>
             <h1 class="login-title">Recuperar <span style="color: var(--primary);">Senha</span></h1>
             <p class="login-subtitle">Identifique sua conta para orientações de acesso</p>
         </div>

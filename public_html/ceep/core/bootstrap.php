@@ -325,7 +325,7 @@ function render_header(string $title = 'CEEP Reservas', string $activeTab = 'hom
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="core/app.css?v=2026.1">
+    <link rel="stylesheet" href="core/app.css?v=2026.3">
 </head>
 <body class="ceep-app">
     <!-- Header Principal -->
@@ -333,7 +333,7 @@ function render_header(string $title = 'CEEP Reservas', string $activeTab = 'hom
         <div class="header-inner">
             <div class="brand-container">
                 <a href="home.php" class="brand-link" title="CEEP Reservas - Página Principal">
-                    <img src="CRTI.png" alt="Logo CRTI" class="brand-logo-img">
+                    <img src="CRTI.png" alt="Logo CRTI" style="height: 32px !important; max-height: 32px !important; width: auto !important; max-width: 40px !important; object-fit: contain !important;" height="32">
                     <div class="brand-text">
                         <span class="brand-title">CEEP <span class="highlight">Reservas</span></span>
                         <span class="brand-subtitle">Gestão de Salas &amp; Recursos</span>
