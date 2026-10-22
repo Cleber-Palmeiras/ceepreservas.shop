@@ -45,9 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body class="login-body">
     <div class="login-card animate-slide-in">
         <div class="login-brand">
-            <div class="login-icon-box">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            </div>
+            <div style="display: flex; justify-content: center; margin-bottom: 0.85rem;"><img src="CRTI.png" alt="Logo CRTI" class="login-logo-img"></div>
             <h1 class="login-title">Recuperar <span style="color: var(--primary);">Senha</span></h1>
             <p class="login-subtitle">Identifique sua conta para orientações de acesso</p>
         </div>

@@ -333,15 +333,7 @@ function render_header(string $title = 'CEEP Reservas', string $activeTab = 'hom
         <div class="header-inner">
             <div class="brand-container">
                 <a href="home.php" class="brand-link" title="CEEP Reservas - Página Principal">
-                    <div class="brand-icon">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                            <path d="m9 16 2 2 4-4"></path>
-                        </svg>
-                    </div>
+                    <img src="CRTI.png" alt="Logo CRTI" class="brand-logo-img">
                     <div class="brand-text">
                         <span class="brand-title">CEEP <span class="highlight">Reservas</span></span>
                         <span class="brand-subtitle">Gestão de Salas &amp; Recursos</span>
@@ -470,7 +462,10 @@ function render_header(string $title = 'CEEP Reservas', string $activeTab = 'hom
     <!-- Drawer Mobile -->
     <div class="mobile-drawer" id="mobileDrawer">
         <div class="drawer-header">
-            <span class="drawer-title">CEEP Reservas</span>
+            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                <img src="CRTI.png" alt="Logo CRTI" style="height: 36px; width: auto; object-fit: contain;">
+                <span class="drawer-title">CEEP Reservas</span>
+            </div>
             <button type="button" class="drawer-close" id="drawerClose">&times;</button>
         </div>
         <div class="drawer-user">
