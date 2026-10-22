@@ -325,7 +325,7 @@ function render_header(string $title = 'CEEP Reservas', string $activeTab = 'hom
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="core/app.css?v=2026.3">
+    <link rel="stylesheet" href="core/app.css?v=2026.4">
 </head>
 <body class="ceep-app">
     <!-- Header Principal -->
